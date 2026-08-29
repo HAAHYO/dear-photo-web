@@ -1,0 +1,55 @@
+name: ✨ 기능 요청
+description: 새로운 기능이나 개선 아이디어를 제안해주세요
+title: "[feat] "
+labels: ["✨ enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 어떤 기능인가요?
+      description: 제안하는 기능을 한두 문장으로 요약해주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 왜 필요한가요?
+      description: 해결하고 싶은 문제나 배경을 적어주세요. (기능명세서 항목이면 No도 함께 적어주세요)
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안하는 구현 방향
+      description: 화면/API/데이터 흐름 등 구체적인 아이디어가 있다면 적어주세요.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: 해당 Phase
+      options:
+        - Phase 1
+        - Phase 2
+        - Phase 3
+        - Phase 4
+        - Phase 5
+        - 미정
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - Frontend
+        - Backend
+        - Infra / 배포
+        - 디자인
+      multiple: true
+    validations:
+      required: true
