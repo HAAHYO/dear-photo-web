@@ -1,0 +1,450 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { getConceptDetail, getConceptStickers } from "@/shared/api/concepts";
+import { uploadPhotoDraft, fetchPhotoBlob } from "@/shared/api/photos";
+import { CAPTURE_STORAGE_KEY } from "@/shared/config/storageKeys";
+import { Button } from "@/shared/ui/Button";
+import { useAuth } from "@/shared/auth/AuthContext";
+import { saveDiaryEntry } from "@/shared/api/diary";
+
+const FRAME_W = 400;
+const FRAME_H = 640;
+const CANVAS_SCALE = 2;
+const BRUSH_COLORS = ["#26221F", "#E85D4E", "#F5D547", "#8FD9C4"];
+const FALLBACK_FRAME_COLOR = "#E85D4E";
+
+type PlacedSticker = {
+  id: string;
+  imageUrl: string;
+  xPct: number;
+  yPct: number;
+};
+
+type CaptureData = { conceptId: number; shots: string[] };
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+export default function EditPage() {
+  const params = useParams<{ conceptId: string }>();
+  const conceptId = Number(params.conceptId);
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+
+  const { data: concept } = useQuery({
+    queryKey: ["concept", conceptId],
+    queryFn: () => getConceptDetail(conceptId),
+    enabled: Number.isFinite(conceptId),
+    retry: false,
+  });
+  const { data: stickers } = useQuery({
+    queryKey: ["concept", conceptId, "stickers"],
+    queryFn: () => getConceptStickers(conceptId),
+    enabled: Number.isFinite(conceptId),
+    retry: false,
+  });
+
+  const [capture, setCapture] = useState<CaptureData | null>(null);
+  const [tab, setTab] = useState<"sticker" | "draw">("sticker");
+  const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [brushColor, setBrushColor] = useState(BRUSH_COLORS[0]);
+  const [content, setContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const frameRef = useRef<HTMLDivElement>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null);
+  const isPointerDown = useRef(false);
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(CAPTURE_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as CaptureData;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 세션스토리지에서 촬영본을 읽어와 하이드레이션한다
+    if (parsed.conceptId === conceptId) setCapture(parsed);
+  }, [conceptId]);
+
+  // 촬영본 + 프레임을 베이스 캔버스에 그린다
+  useEffect(() => {
+    const canvas = baseCanvasRef.current;
+    if (!canvas || !capture) return;
+
+    canvas.width = FRAME_W * CANVAS_SCALE;
+    canvas.height = FRAME_H * CANVAS_SCALE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const pad = 20 * CANVAS_SCALE;
+    const gap = 8 * CANVAS_SCALE;
+    const slotW = canvas.width - pad * 2;
+    const slotH = (canvas.height - pad * 2 - gap * 3) / 4;
+
+    async function render() {
+      if (!ctx || !canvas) return;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const photos = await Promise.all(capture!.shots.map(loadImage));
+      photos.forEach((img, i) => {
+        const y = pad + i * (slotH + gap);
+        ctx.drawImage(img, pad, y, slotW, slotH);
+      });
+
+      if (concept?.frameImageUrl) {
+        try {
+          const frame = await loadImage(concept.frameImageUrl);
+          ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+          return;
+        } catch {
+          // 프레임 이미지 로드 실패 시 기본 테두리로 대체
+        }
+      }
+
+      ctx.strokeStyle = FALLBACK_FRAME_COLOR;
+      ctx.lineWidth = 3 * CANVAS_SCALE;
+      const inset = 8 * CANVAS_SCALE;
+      ctx.strokeRect(inset, inset, canvas.width - inset * 2, canvas.height - inset * 2);
+
+      const label = `DEAR PHOTO · ${concept?.name ?? ""}`;
+      ctx.font = `${11 * CANVAS_SCALE}px sans-serif`;
+      const textW = ctx.measureText(label).width;
+      const boxPad = 8 * CANVAS_SCALE;
+      const boxX = 20 * CANVAS_SCALE;
+      const boxY = canvas.height - 36 * CANVAS_SCALE;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(boxX, boxY, textW + boxPad * 2, 22 * CANVAS_SCALE);
+      ctx.fillStyle = FALLBACK_FRAME_COLOR;
+      ctx.fillText(label, boxX + boxPad, boxY + 15 * CANVAS_SCALE);
+    }
+
+    render();
+  }, [capture, concept]);
+
+  useEffect(() => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    canvas.width = FRAME_W * CANVAS_SCALE;
+    canvas.height = FRAME_H * CANVAS_SCALE;
+  }, []);
+
+  function toCanvasPoint(e: React.PointerEvent) {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((e.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  }
+
+  function handleDrawStart(e: React.PointerEvent) {
+    if (tab !== "draw") return;
+    isPointerDown.current = true;
+    lastPoint.current = toCanvasPoint(e);
+  }
+
+  function handleDrawMove(e: React.PointerEvent) {
+    if (tab !== "draw" || !isPointerDown.current) return;
+    const canvas = drawCanvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const point = toCanvasPoint(e);
+    if (!ctx || !point || !lastPoint.current) return;
+
+    ctx.strokeStyle = brushColor;
+    ctx.lineWidth = 4 * CANVAS_SCALE;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    lastPoint.current = point;
+  }
+
+  function handleDrawEnd() {
+    isPointerDown.current = false;
+    lastPoint.current = null;
+  }
+
+  function addSticker(imageUrl: string) {
+    setPlacedStickers((prev) => [
+      ...prev,
+      { id: `${imageUrl}-${Date.now()}`, imageUrl, xPct: 50, yPct: 50 },
+    ]);
+  }
+
+  function handleFramePointerMove(e: React.PointerEvent) {
+    if (!draggingId || !frameRef.current) return;
+    const rect = frameRef.current.getBoundingClientRect();
+    const xPct = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+    const yPct = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    setPlacedStickers((prev) =>
+      prev.map((s) => (s.id === draggingId ? { ...s, xPct, yPct } : s))
+    );
+  }
+
+  async function composeFinalImageBlob(): Promise<Blob | null> {
+    const base = baseCanvasRef.current;
+    const draw = drawCanvasRef.current;
+    if (!base || !draw) return null;
+
+    const out = document.createElement("canvas");
+    out.width = base.width;
+    out.height = base.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.drawImage(base, 0, 0);
+    ctx.drawImage(draw, 0, 0);
+
+    for (const s of placedStickers) {
+      try {
+        const img = await loadImage(s.imageUrl);
+        const size = 44 * CANVAS_SCALE;
+        ctx.drawImage(
+          img,
+          (s.xPct / 100) * out.width - size / 2,
+          (s.yPct / 100) * out.height - size / 2,
+          size,
+          size
+        );
+      } catch {
+        // 스티커 이미지 로드 실패 시 건너뛴다
+      }
+    }
+
+    return new Promise((resolve) => out.toBlob((blob) => resolve(blob), "image/png"));
+  }
+
+  async function uploadDraft(): Promise<number | null> {
+    const blob = await composeFinalImageBlob();
+    if (!blob) {
+      toast.error("사진을 완성할 수 없어요.");
+      return null;
+    }
+    const draft = await uploadPhotoDraft(blob, conceptId);
+    return draft.id;
+  }
+
+  async function handleDownload() {
+    setIsDownloading(true);
+    try {
+      const photoId = await uploadDraft();
+      if (!photoId) return;
+      const blob = await fetchPhotoBlob(photoId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dear-photo-${conceptId}-${Date.now()}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("사진을 다운로드했어요.");
+    } catch (error) {
+      toast.error("다운로드에 실패했어요.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
+  async function handleSaveToDiary() {
+    if (!isAuthenticated || !user) {
+      router.push("/login");
+      return;
+    }
+    if (!content.trim()) {
+      toast.error("오늘의 한 줄을 적어주세요.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const photoId = await uploadDraft();
+      if (!photoId) return;
+      await saveDiaryEntry(user.id, { photoId, content: content.trim() });
+      toast.success("다이어리에 저장했어요.");
+      router.push("/diary");
+    } catch (error) {
+      toast.error("다이어리 저장에 실패했어요.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (!capture) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="font-bold text-ink-soft">
+          촬영한 사진이 없어요. 먼저 포토부스에서 촬영해주세요.
+        </p>
+        <Link href="/" className="font-bold text-coral-dark">
+          컨셉 선택으로 가기
+        </Link>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen">
+      <div className="flex flex-1 flex-col items-center bg-paper-soft py-9">
+        <Link
+          href={`/booth/${conceptId}/capture`}
+          className="mb-4 flex w-full max-w-4xl items-center gap-2 px-12 text-sm text-ink-soft"
+        >
+          <span>←</span>
+          <span>다시 촬영</span>
+        </Link>
+
+        <div
+          ref={frameRef}
+          onPointerMove={handleFramePointerMove}
+          onPointerUp={() => setDraggingId(null)}
+          onPointerLeave={() => setDraggingId(null)}
+          className="relative rounded-2xl bg-white shadow-lg"
+          style={{ width: FRAME_W, height: FRAME_H }}
+        >
+          <canvas ref={baseCanvasRef} className="absolute inset-0 h-full w-full rounded-2xl" />
+          <canvas
+            ref={drawCanvasRef}
+            onPointerDown={handleDrawStart}
+            onPointerMove={handleDrawMove}
+            onPointerUp={handleDrawEnd}
+            onPointerLeave={handleDrawEnd}
+            className="absolute inset-0 h-full w-full rounded-2xl"
+            style={{ touchAction: "none", cursor: tab === "draw" ? "crosshair" : "default" }}
+          />
+
+          {placedStickers.map((s) => (
+            // eslint-disable-next-line @next/next/no-img-element -- 사용자가 배치하는 임의의 스티커 이미지라 next/image 최적화 대상이 아님
+            <img
+              key={s.id}
+              src={s.imageUrl}
+              alt="스티커"
+              onPointerDown={() => setDraggingId(s.id)}
+              className="absolute h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing"
+              style={{ left: `${s.xPct}%`, top: `${s.yPct}%`, touchAction: "none" }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex w-100 flex-col gap-6 border-l border-line bg-white p-8">
+        <div>
+          <h1 className="text-lg font-extrabold">사진 꾸미기</h1>
+          <p className="mt-1 text-sm text-ink-faint">
+            스티커를 붙이거나 직접 그림을 그려보세요
+          </p>
+        </div>
+
+        <div className="flex gap-6 border-b border-line">
+          <button
+            onClick={() => setTab("sticker")}
+            className={`border-b-2 pb-2.5 text-sm font-bold ${
+              tab === "sticker" ? "border-coral text-ink" : "border-transparent text-ink-faint"
+            }`}
+          >
+            스티커
+          </button>
+          <button
+            onClick={() => setTab("draw")}
+            className={`border-b-2 pb-2.5 text-sm font-bold ${
+              tab === "draw" ? "border-coral text-ink" : "border-transparent text-ink-faint"
+            }`}
+          >
+            그림 그리기
+          </button>
+        </div>
+
+        {tab === "sticker" ? (
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-bold text-ink-faint">
+              {concept?.name ?? "컨셉"} 스티커팩
+            </span>
+            <div className="grid grid-cols-4 gap-2.5">
+              {stickers?.map((sticker) => (
+                <button
+                  key={sticker.id}
+                  onClick={() => addSticker(sticker.imageUrl)}
+                  className="flex aspect-square items-center justify-center rounded-xl bg-paper p-2 transition-transform hover:-translate-y-0.5 hover:bg-[#FBEAE6]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스티커 썸네일 */}
+                  <img src={sticker.imageUrl} alt={sticker.name} className="h-full w-full object-contain" />
+                </button>
+              ))}
+              {stickers?.length === 0 && (
+                <p className="col-span-4 text-xs text-ink-faint">
+                  이 컨셉에는 아직 스티커가 없어요.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 rounded-xl bg-paper p-3">
+            <span className="text-xs text-ink-soft">브러시 색상</span>
+            <div className="ml-auto flex gap-1.5">
+              {BRUSH_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setBrushColor(color)}
+                  className={`h-5 w-5 rounded-full transition-transform hover:scale-110 ${
+                    brushColor === color ? "ring-2 ring-offset-2 ring-ink" : ""
+                  }`}
+                  style={{ backgroundColor: color }}
+                  aria-label={color}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-ink-faint" htmlFor="diary-content">
+            오늘의 한 줄 (다이어리에 저장할 때 함께 남겨요)
+          </label>
+          <textarea
+            id="diary-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="오늘 첫 소포를 보냈다 :)"
+            rows={3}
+            className="w-full resize-none rounded-xl border border-line px-3.5 py-3 text-sm outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
+          />
+        </div>
+
+        <div className="mt-auto flex flex-col gap-2.5">
+          <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
+            ⬇ 사진 다운로드
+          </Button>
+          <Button
+            onClick={handleSaveToDiary}
+            variant="ghost"
+            disabled={isSaving}
+            className="w-full"
+          >
+            {isAuthenticated ? "다이어리에 저장" : "🔒 로그인하고 다이어리에 저장"}
+          </Button>
+          <p className="text-center text-xs text-[#B3AB9C]">
+            비로그인 상태에서는 다운로드만 가능해요
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}

@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f5f0;
+  --foreground: #26221f;
+
+  --color-lemon: #f5d547;
+  --color-lemon-dark: #e0be2e;
+  --color-coral: #e85d4e;
+  --color-coral-dark: #c94b3d;
+  --color-mint: #8fd9c4;
+  --color-ink: #26221f;
+  --color-ink-soft: #5c564e;
+  --color-ink-faint: #9a9186;
+  --color-paper: #f7f5f0;
+  --color-paper-soft: #f0eee6;
+  --color-line: #e3dfd5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-lemon: var(--color-lemon);
+  --color-lemon-dark: var(--color-lemon-dark);
+  --color-coral: var(--color-coral);
+  --color-coral-dark: var(--color-coral-dark);
+  --color-mint: var(--color-mint);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-paper: var(--color-paper);
+  --color-paper-soft: var(--color-paper-soft);
+  --color-line: var(--color-line);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Malgun Gothic",
+    "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

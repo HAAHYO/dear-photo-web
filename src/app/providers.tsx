@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { Toaster, toast } from "sonner";
 import { makeQueryClient } from "@/shared/config/queryClient";
+import { AuthProvider } from "@/shared/auth/AuthContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => {
@@ -19,7 +20,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      {children}
+      <AuthProvider>{children}</AuthProvider>
       <Toaster
         position="top-right"
         richColors
