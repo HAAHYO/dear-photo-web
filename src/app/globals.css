@@ -1,20 +1,45 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
 @import "tailwindcss";
 
 :root {
-  --background: #f7f5f0;
-  --foreground: #26221f;
+  --background: #f7f5fb;
+  --foreground: #2b2a33;
 
   --color-lemon: #f5d547;
   --color-lemon-dark: #e0be2e;
   --color-coral: #e85d4e;
   --color-coral-dark: #c94b3d;
   --color-mint: #8fd9c4;
-  --color-ink: #26221f;
-  --color-ink-soft: #5c564e;
-  --color-ink-faint: #9a9186;
-  --color-paper: #f7f5f0;
-  --color-paper-soft: #f0eee6;
-  --color-line: #e3dfd5;
+  --color-sky: #bfe1f7;
+  --color-pink: #f6cfe0;
+  --color-ink: #2b2a33;
+  --color-ink-soft: #615f6b;
+  --color-ink-faint: #9c9aa8;
+  --color-paper: #f7f5fb;
+  --color-paper-soft: #efecf7;
+  --color-line: #e2ddef;
+  /* 카드/패널처럼 배경 위에 얹히는 표면. 라이트에선 흰색, 다크에선 어두운 표면으로 바뀐다.
+     새 UI를 만들 때 bg-white 대신 bg-surface를 써야 다크모드가 그대로 적용된다. */
+  --color-surface: #ffffff;
+  --color-surface-alt: #fbfaff;
+}
+
+/* 다크모드는 시스템 설정을 자동으로 따라가지 않는다 — 오직 헤더의 다크모드 토글로만 켜진다. */
+:root[data-theme="dark"] {
+  --background: #1c1b24;
+  --foreground: #efedf6;
+
+  --color-mint: #7fd0b8;
+  --color-sky: #7fb4dd;
+  --color-pink: #d99cb8;
+  --color-ink: #efedf6;
+  --color-ink-soft: #c3c0d1;
+  --color-ink-faint: #8b899b;
+  --color-paper: #1c1b24;
+  --color-paper-soft: #262533;
+  --color-line: #38364a;
+  --color-surface: #262533;
+  --color-surface-alt: #2d2c3c;
 }
 
 @theme inline {
@@ -31,7 +56,11 @@
   --color-paper: var(--color-paper);
   --color-paper-soft: var(--color-paper-soft);
   --color-line: var(--color-line);
-  --font-sans: -apple-system, BlinkMacSystemFont, "Malgun Gothic",
+  --color-sky: var(--color-sky);
+  --color-pink: var(--color-pink);
+  --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
+  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Malgun Gothic",
     "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
@@ -40,3 +69,71 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* 우편/소포 컨셉 유틸리티 */
+.mail-dot-bg {
+  background-color: var(--color-paper-soft);
+  background-image: radial-gradient(var(--color-line) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+
+.tape {
+  position: absolute;
+  width: 72px;
+  height: 26px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(245, 213, 71, 0.55),
+    rgba(245, 213, 71, 0.55) 4px,
+    rgba(245, 213, 71, 0.35) 4px,
+    rgba(245, 213, 71, 0.35) 8px
+  );
+  box-shadow: 0 1px 2px rgba(38, 34, 31, 0.15);
+  opacity: 0.9;
+}
+
+.folder-tab {
+  border-radius: 10px 10px 0 0;
+  position: relative;
+  top: 1px;
+}
+
+/* 모바일 하단 고정 탭바(Header 참고)에 콘텐츠가 가려지지 않도록 여백 확보 */
+@media (max-width: 1023.98px) {
+  main {
+    padding-bottom: 76px;
+  }
+}
+
+/* 항공우편(Air Mail) 대각선 스트라이프 테두리 */
+.airmail-frame {
+  padding: 9px;
+  border-radius: 20px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-coral) 0 12px,
+    #ffffff 12px 18px,
+    #2f3550 18px 30px,
+    #ffffff 30px 36px
+  );
+}
+
+.airmail-frame > * {
+  border-radius: 14px;
+}
+
+/* 토스트: 위에서 떨어지지 않고 오른쪽에서 옆으로 슬라이드 인/아웃 (부드러운 이징) */
+[data-sonner-toast][data-mounted="false"][data-y-position="top"] {
+  --y: translateX(120%) !important;
+}
+[data-sonner-toast][data-removed="true"][data-swipe-out="false"][data-y-position="top"] {
+  --y: translateX(120%) !important;
+}
+[data-sonner-toast][data-y-position="top"] {
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 280ms ease-out,
+    height 400ms,
+    box-shadow 200ms !important;
+}
+

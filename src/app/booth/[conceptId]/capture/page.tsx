@@ -188,7 +188,7 @@ export default function CapturePage() {
       <button
         onClick={runShotSequence}
         disabled={isBusy || !!cameraError || shots.length >= SHOT_COUNT}
-        className="mt-7 h-19 w-19 rounded-full border-4 border-white bg-coral disabled:opacity-40"
+        className="mt-7 h-19 w-19 cursor-pointer rounded-full border-4 border-white bg-coral disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="촬영하기"
       />
       <p className="mt-3 text-sm text-[#9A938A]">

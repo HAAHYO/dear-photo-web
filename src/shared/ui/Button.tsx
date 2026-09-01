@@ -1,14 +1,19 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
-type Variant = "primary" | "ghost" | "outline";
+type Variant = "primary" | "ghost" | "outline" | "ink" | "white";
 
 const VARIANT_CLASS: Record<Variant, string> = {
   primary:
     "bg-coral text-white shadow-[0_4px_0_var(--color-coral-dark)] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--color-coral-dark)] active:translate-y-0.5 active:shadow-[0_2px_0_var(--color-coral-dark)]",
   ghost:
-    "bg-white text-ink border border-line hover:border-ink hover:-translate-y-0.5",
+    "bg-surface text-ink border border-line hover:border-ink hover:-translate-y-0.5",
   outline:
     "bg-transparent text-ink border border-ink hover:bg-ink hover:text-white",
+  ink:
+    "bg-ink text-white shadow-[0_4px_0_var(--color-ink-soft)] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--color-ink-soft)] active:translate-y-0.5 active:shadow-[0_2px_0_var(--color-ink-soft)]",
+  // 회원가입(primary)과 같은 팝 그림자 구조지만 배경은 화이트인 버전 — 로그인 버튼용
+  white:
+    "bg-surface text-ink border border-line shadow-[0_4px_0_var(--color-line)] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--color-line)] active:translate-y-0.5 active:shadow-[0_2px_0_var(--color-line)]",
 };
 
 export const Button = forwardRef<

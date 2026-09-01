@@ -59,7 +59,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             <path d="M2 7l12 10 12-10" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="14" cy="4.5" r="3.2" fill="#F5D547" />
           </svg>
-          <span className="text-lg font-extrabold">Dear Photo</span>
+          <span className="text-lg font-extrabold">Dear, Photo</span>
         </Link>
         <div>
           <p className="text-3xl leading-snug font-extrabold">

@@ -66,7 +66,7 @@ export default function DiaryPage() {
             {data?.content.map((entry) => (
               <div
                 key={entry.id}
-                className="overflow-hidden rounded-2xl bg-white shadow-sm transition-transform hover:-translate-y-1.5 hover:shadow-lg"
+                className="overflow-hidden rounded-2xl bg-surface shadow-sm transition-transform hover:-translate-y-1.5 hover:shadow-lg"
               >
                 <div
                   className="relative h-45 bg-cover bg-center bg-paper-soft"

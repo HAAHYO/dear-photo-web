@@ -11,6 +11,7 @@ import { CAPTURE_STORAGE_KEY } from "@/shared/config/storageKeys";
 import { Button } from "@/shared/ui/Button";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { saveDiaryEntry } from "@/shared/api/diary";
+import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 
 const FRAME_W = 400;
 const FRAME_H = 640;
@@ -120,7 +121,7 @@ export default function EditPage() {
       const inset = 8 * CANVAS_SCALE;
       ctx.strokeRect(inset, inset, canvas.width - inset * 2, canvas.height - inset * 2);
 
-      const label = `DEAR PHOTO · ${concept?.name ?? ""}`;
+      const label = `DEAR, PHOTO · ${concept?.name ?? ""}`;
       ctx.font = `${11 * CANVAS_SCALE}px sans-serif`;
       const textW = ctx.measureText(label).width;
       const boxPad = 8 * CANVAS_SCALE;
@@ -302,78 +303,107 @@ export default function EditPage() {
   }
 
   return (
-    <main className="flex min-h-screen">
-      <div className="flex flex-1 flex-col items-center bg-paper-soft py-9">
+    <main className="flex min-h-screen flex-col lg:flex-row">
+      <div className="mail-dot-bg flex flex-1 flex-col items-center px-4 py-9">
         <Link
           href={`/booth/${conceptId}/capture`}
-          className="mb-4 flex w-full max-w-4xl items-center gap-2 px-12 text-sm text-ink-soft"
+          className="mb-6 flex w-full max-w-4xl items-center gap-2 px-4 text-sm font-bold text-ink-soft lg:px-12"
         >
           <span>←</span>
           <span>다시 촬영</span>
         </Link>
 
-        <div
-          ref={frameRef}
-          onPointerMove={handleFramePointerMove}
-          onPointerUp={() => setDraggingId(null)}
-          onPointerLeave={() => setDraggingId(null)}
-          className="relative rounded-2xl bg-white shadow-lg"
-          style={{ width: FRAME_W, height: FRAME_H }}
-        >
-          <canvas ref={baseCanvasRef} className="absolute inset-0 h-full w-full rounded-2xl" />
-          <canvas
-            ref={drawCanvasRef}
-            onPointerDown={handleDrawStart}
-            onPointerMove={handleDrawMove}
-            onPointerUp={handleDrawEnd}
-            onPointerLeave={handleDrawEnd}
-            className="absolute inset-0 h-full w-full rounded-2xl"
-            style={{ touchAction: "none", cursor: tab === "draw" ? "crosshair" : "default" }}
-          />
+        {/* 소포 사진: 프레임 + 테이프 + 소인 스탬프 */}
+        <div className="relative w-full" style={{ maxWidth: FRAME_W }}>
+          <div
+            ref={frameRef}
+            onPointerMove={handleFramePointerMove}
+            onPointerUp={() => setDraggingId(null)}
+            onPointerLeave={() => setDraggingId(null)}
+            className="relative w-full rotate-[-1.5deg] rounded-sm bg-surface p-3 pb-10 shadow-xl"
+          >
+            <div className="tape -top-3 left-6 rotate-[-8deg]" />
+            <div className="tape -top-3 right-6 rotate-[6deg]" />
 
-          {placedStickers.map((s) => (
-            // eslint-disable-next-line @next/next/no-img-element -- 사용자가 배치하는 임의의 스티커 이미지라 next/image 최적화 대상이 아님
-            <img
-              key={s.id}
-              src={s.imageUrl}
-              alt="스티커"
-              onPointerDown={() => setDraggingId(s.id)}
-              className="absolute h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing"
-              style={{ left: `${s.xPct}%`, top: `${s.yPct}%`, touchAction: "none" }}
-            />
-          ))}
+            <div
+              className="relative w-full overflow-hidden rounded-sm"
+              style={{ aspectRatio: `${FRAME_W - 24} / ${FRAME_H}` }}
+            >
+              <canvas ref={baseCanvasRef} className="absolute inset-0 h-full w-full" />
+              <canvas
+                ref={drawCanvasRef}
+                onPointerDown={handleDrawStart}
+                onPointerMove={handleDrawMove}
+                onPointerUp={handleDrawEnd}
+                onPointerLeave={handleDrawEnd}
+                className="absolute inset-0 h-full w-full"
+                style={{ touchAction: "none", cursor: tab === "draw" ? "crosshair" : "default" }}
+              />
+
+              {placedStickers.map((s) => (
+                // eslint-disable-next-line @next/next/no-img-element -- 사용자가 배치하는 임의의 스티커 이미지라 next/image 최적화 대상이 아님
+                <img
+                  key={s.id}
+                  src={s.imageUrl}
+                  alt="스티커"
+                  onPointerDown={() => setDraggingId(s.id)}
+                  className="absolute h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab select-none active:cursor-grabbing"
+                  style={{ left: `${s.xPct}%`, top: `${s.yPct}%`, touchAction: "none" }}
+                />
+              ))}
+            </div>
+
+            <p className="mt-2.5 text-center font-serif text-sm text-ink-soft">
+              {concept?.name ?? "Dear, Photo"} 소포
+            </p>
+
+            <PostmarkStamp className="absolute -right-6 -top-6 h-20 w-20 rotate-[-8deg]" />
+          </div>
         </div>
       </div>
 
-      <div className="flex w-100 flex-col gap-6 border-l border-line bg-white p-8">
+      <div className="flex w-full flex-col gap-6 border-t border-line bg-surface p-6 sm:p-8 lg:w-100 lg:border-l lg:border-t-0">
+        {/* 우편 라벨 헤더 */}
+        <div className="-mx-6 -mt-6 flex items-center gap-2 border-b border-dashed border-line bg-paper-soft px-4 py-2.5 sm:-mx-8 sm:-mt-8">
+          <span className="text-sm">📮</span>
+          <span className="text-xs font-bold text-ink-faint">
+            {concept?.name ?? "컨셉"} 소포 꾸미는 중
+          </span>
+        </div>
+
         <div>
-          <h1 className="text-lg font-extrabold">사진 꾸미기</h1>
+          <h1 className="text-lg font-extrabold">✉ 보낼 소포 꾸미기</h1>
           <p className="mt-1 text-sm text-ink-faint">
-            스티커를 붙이거나 직접 그림을 그려보세요
+            스티커를 붙이거나 직접 그림을 그려 마음을 담아보세요
           </p>
         </div>
 
-        <div className="flex gap-6 border-b border-line">
+        <div className="flex gap-1.5">
           <button
             onClick={() => setTab("sticker")}
-            className={`border-b-2 pb-2.5 text-sm font-bold ${
-              tab === "sticker" ? "border-coral text-ink" : "border-transparent text-ink-faint"
+            className={`folder-tab cursor-pointer border px-4 py-2 text-sm font-bold ${
+              tab === "sticker"
+                ? "border-line border-b-surface bg-surface text-ink"
+                : "border-transparent bg-transparent text-ink-faint hover:text-ink-soft"
             }`}
           >
-            스티커
+            🏷️ 스티커
           </button>
           <button
             onClick={() => setTab("draw")}
-            className={`border-b-2 pb-2.5 text-sm font-bold ${
-              tab === "draw" ? "border-coral text-ink" : "border-transparent text-ink-faint"
+            className={`folder-tab cursor-pointer border px-4 py-2 text-sm font-bold ${
+              tab === "draw"
+                ? "border-line border-b-surface bg-surface text-ink"
+                : "border-transparent bg-transparent text-ink-faint hover:text-ink-soft"
             }`}
           >
-            그림 그리기
+            ✏️ 그림 그리기
           </button>
+          <div className="flex-1 border-b border-line" />
         </div>
 
         {tab === "sticker" ? (
-          <div className="flex flex-col gap-3">
+          <div className="-mt-2 flex flex-col gap-3">
             <span className="text-xs font-bold text-ink-faint">
               {concept?.name ?? "컨셉"} 스티커팩
             </span>
@@ -382,7 +412,7 @@ export default function EditPage() {
                 <button
                   key={sticker.id}
                   onClick={() => addSticker(sticker.imageUrl)}
-                  className="flex aspect-square items-center justify-center rounded-xl bg-paper p-2 transition-transform hover:-translate-y-0.5 hover:bg-[#FBEAE6]"
+                  className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border border-dashed border-line bg-paper p-2 transition-transform hover:-translate-y-0.5 hover:border-coral hover:bg-[#FBEAE6]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- 원격 스티커 썸네일 */}
                   <img src={sticker.imageUrl} alt={sticker.name} className="h-full w-full object-contain" />
@@ -396,14 +426,14 @@ export default function EditPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5 rounded-xl bg-paper p-3">
+          <div className="-mt-2 flex items-center gap-2.5 rounded-xl bg-paper p-3">
             <span className="text-xs text-ink-soft">브러시 색상</span>
             <div className="ml-auto flex gap-1.5">
               {BRUSH_COLORS.map((color) => (
                 <button
                   key={color}
                   onClick={() => setBrushColor(color)}
-                  className={`h-5 w-5 rounded-full transition-transform hover:scale-110 ${
+                  className={`h-5 w-5 cursor-pointer rounded-full transition-transform hover:scale-110 ${
                     brushColor === color ? "ring-2 ring-offset-2 ring-ink" : ""
                   }`}
                   style={{ backgroundColor: color }}
@@ -416,7 +446,7 @@ export default function EditPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold text-ink-faint" htmlFor="diary-content">
-            오늘의 한 줄 (다이어리에 저장할 때 함께 남겨요)
+            📮 오늘의 한 줄 (다이어리 우편함에 함께 남겨요)
           </label>
           <textarea
             id="diary-content"
@@ -430,7 +460,7 @@ export default function EditPage() {
 
         <div className="mt-auto flex flex-col gap-2.5">
           <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
-            ⬇ 사진 다운로드
+            ⬇ 소포 다운로드
           </Button>
           <Button
             onClick={handleSaveToDiary}
@@ -438,7 +468,7 @@ export default function EditPage() {
             disabled={isSaving}
             className="w-full"
           >
-            {isAuthenticated ? "다이어리에 저장" : "🔒 로그인하고 다이어리에 저장"}
+            {isAuthenticated ? "📬 우편함(다이어리)으로 보내기" : "🔒 로그인하고 우편함으로 보내기"}
           </Button>
           <p className="text-center text-xs text-[#B3AB9C]">
             비로그인 상태에서는 다운로드만 가능해요
