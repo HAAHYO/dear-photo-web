@@ -32,7 +32,7 @@ export default function TermsPage() {
       <section className="flex flex-1 flex-col gap-6 px-5 py-8 sm:px-8 sm:py-11 lg:px-14">
         <h1 className="text-[26px] font-extrabold">✉️ 이용약관</h1>
 
-        <div className="airmail-frame max-w-2xl shadow-md">
+        <div className="airmail-frame mx-auto w-full max-w-3xl shadow-md">
           <div className="flex flex-col gap-6 bg-surface p-6 sm:p-9">
             {SECTIONS.map((section) => (
               <div key={section.title} className="border-t border-dashed border-line pt-5 first:border-none first:pt-0">

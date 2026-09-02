@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       <section className="flex flex-1 flex-col gap-6 px-5 py-8 sm:px-8 sm:py-11 lg:px-14">
         <h1 className="text-[26px] font-extrabold">📮 개인정보처리방침</h1>
 
-        <div className="airmail-frame max-w-2xl shadow-md">
+        <div className="airmail-frame mx-auto w-full max-w-3xl shadow-md">
           <div className="flex flex-col gap-6 bg-surface p-6 sm:p-9">
             <p className="text-sm leading-relaxed text-ink-soft">
               Dear, Photo(이하 &quot;서비스&quot;)는 이용자의 개인정보를 소중히 다루며, 관련 법령을
