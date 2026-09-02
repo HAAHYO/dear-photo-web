@@ -1,17 +1,14 @@
 import axios, { AxiosError } from "axios";
 
-export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  timeout: 10_000,
-  headers: { "Content-Type": "application/json" },
-});
+// 실제 배포된 Dear Photo 백엔드 (Swagger: /swagger-ui/index.html)
+const DEFAULT_API_BASE_URL =
+  "https://port-0-dear-photo-server-mt8m1nf65d1ed698.sel3.cloudtype.app";
 
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("accessToken");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+export const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL,
+  timeout: 10_000,
+  // 세션 쿠키(JSESSIONID) 기반 인증이라 매 요청에 쿠키를 실어보내야 한다
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
