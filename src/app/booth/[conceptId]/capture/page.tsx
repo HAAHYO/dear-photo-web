@@ -83,7 +83,7 @@ export default function CapturePage() {
 
     for (let i = 0; i < COUNTDOWN_SECONDS; i++) {
       setCountdown(COUNTDOWN_SECONDS - i);
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     setCountdown(null);
 
