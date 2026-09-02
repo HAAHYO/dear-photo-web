@@ -31,6 +31,12 @@ const STEPS = [
   },
 ];
 
+const NOTICES = [
+  { date: "09.02", tag: "NEW", title: "우편 컨셉으로 화면 전체를 새단장했어요" },
+  { date: "08.20", tag: "안내", title: "다이어리 우편함에 스티커 꾸미기 기능이 추가됐어요" },
+  { date: "08.05", tag: "안내", title: "베타 오픈: 로그인 없이도 촬영·다운로드가 가능해요" },
+];
+
 export default function Home() {
   const { data: concepts, isLoading, isError } = useQuery({
     queryKey: ["concepts"],
@@ -77,6 +83,42 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 공지사항: 우체국 게시판 느낌 */}
+      <section className="px-5 pb-10 sm:px-8 lg:px-14">
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-md sm:p-7">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-extrabold">
+              📋 공지사항
+            </h2>
+            <button
+              type="button"
+              aria-label="공지사항 더보기"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line text-ink-faint transition-colors hover:border-ink hover:text-ink"
+            >
+              +
+            </button>
+          </div>
+          <ul className="flex flex-col">
+            {NOTICES.map((notice, i) => (
+              <li
+                key={notice.title}
+                className={`flex items-center gap-3 py-3 text-sm ${i > 0 ? "border-t border-dashed border-line" : ""}`}
+              >
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    notice.tag === "NEW" ? "bg-pink text-coral-dark" : "bg-paper-soft text-ink-faint"
+                  }`}
+                >
+                  {notice.tag}
+                </span>
+                <span className="flex-1 truncate">{notice.title}</span>
+                <span className="shrink-0 text-xs text-ink-faint">{notice.date}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -156,11 +198,11 @@ export default function Home() {
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
-            <div key={step.title} className="relative">
-              {/* 뒤에 겹쳐진 카드 두 장으로 종이 더미 같은 입체감을 낸다 */}
-              <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rotate-2 rounded-2xl border border-line bg-paper-soft" />
-              <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 -rotate-1 rounded-2xl border border-line bg-surface" />
-              <div className="relative flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-6 shadow-lg">
+            <div key={step.title} className="relative h-full">
+              {/* 뒤에 겹쳐진 카드 두 장으로 종이 더미 같은 입체감을 낸다 (회전 없이 폭/높이를 그대로 따라가게 해서 내용 길이가 달라도 삐져나오지 않는다) */}
+              <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl border border-line bg-paper-soft" />
+              <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl border border-line bg-surface" />
+              <div className="relative flex h-full flex-col gap-2.5 rounded-2xl border border-line bg-surface p-6 shadow-lg">
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-pink text-xl">
                   {step.emoji}
                 </span>
