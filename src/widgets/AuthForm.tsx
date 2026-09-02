@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/shared/ui/Button";
+import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { login, signup } from "@/shared/api/auth";
 
@@ -52,8 +53,17 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <div className="flex min-h-screen">
-      <div className="hidden w-[560px] flex-col justify-between bg-ink p-14 text-white lg:flex">
-        <Link href="/" className="flex items-center gap-2.5">
+      {/* 왼쪽 안내 패널: 사이트 테마와 무관하게 항상 어두운 "밤편지" 톤으로 고정 */}
+      <div className="relative hidden w-[560px] flex-col justify-between overflow-hidden bg-[#211f2b] p-14 text-white lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: "radial-gradient(#ffffff 1.4px, transparent 1.4px)",
+            backgroundSize: "22px 22px",
+          }}
+        />
+
+        <Link href="/" className="relative flex items-center gap-2.5">
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
             <rect x="2" y="6" width="24" height="17" rx="3" fill="#E85D4E" />
             <path d="M2 7l12 10 12-10" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -61,7 +71,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           </svg>
           <span className="text-lg font-extrabold">Dear, Photo</span>
         </Link>
-        <div>
+
+        <div className="relative">
           <p className="text-3xl leading-snug font-extrabold">
             촬영한 사진을 다이어리에
             <br />
@@ -72,33 +83,49 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             꺼내볼 수 있어요.
           </p>
         </div>
-        <div className="flex gap-4">
-          <div className="h-38 w-30 rounded-xl bg-[#3A342E]" />
-          <div className="mt-5 h-38 w-30 rounded-xl bg-[#3A342E]" />
-          <div className="h-38 w-30 rounded-xl bg-[#3A342E]" />
+
+        <div className="relative flex items-end gap-4">
+          <div className="tape -top-2.5 left-4 rotate-[-9deg]" />
+          <div className="-rotate-3 rounded-sm bg-white p-2 pb-5 shadow-lg">
+            <div className="h-32 w-24 rounded-sm bg-lemon" />
+          </div>
+          <div className="tape -top-3 left-28 rotate-[7deg]" />
+          <div className="mb-4 rotate-2 rounded-sm bg-white p-2 pb-5 shadow-lg">
+            <div className="h-32 w-24 rounded-sm bg-coral" />
+          </div>
+          <div className="rotate-[-4deg] rounded-sm bg-white p-2 pb-5 shadow-lg">
+            <div className="h-32 w-24 rounded-sm bg-mint" />
+          </div>
+          <PostmarkStamp className="absolute -top-6 right-0 h-20 w-20 rotate-6 text-white opacity-90" />
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-6">
-        <form onSubmit={handleSubmit} className="flex w-[380px] flex-col gap-5.5">
-          <div className="flex border-b border-line">
-            <Link
-              href="/login"
-              className={`flex-1 border-b-2 pb-3 text-center text-sm font-bold ${
-                mode === "login" ? "border-coral text-ink" : "border-transparent text-ink-faint"
-              }`}
-            >
-              로그인
-            </Link>
-            <Link
-              href="/signup"
-              className={`flex-1 border-b-2 pb-3 text-center text-sm font-bold ${
-                mode === "signup" ? "border-coral text-ink" : "border-transparent text-ink-faint"
-              }`}
-            >
-              회원가입
-            </Link>
-          </div>
+      <div className="mail-dot-bg flex flex-1 items-center justify-center px-6 py-14">
+        <form onSubmit={handleSubmit} className="airmail-frame w-full max-w-[420px] shadow-lg">
+          <div className="flex flex-col gap-5.5 bg-surface p-7 sm:p-9">
+            <div className="flex gap-1.5">
+              <Link
+                href="/login"
+                className={`folder-tab flex-1 border px-4 py-2.5 text-center text-sm font-bold ${
+                  mode === "login"
+                    ? "border-line border-b-surface bg-surface text-ink"
+                    : "border-transparent bg-transparent text-ink-faint hover:text-ink-soft"
+                }`}
+              >
+                📨 로그인
+              </Link>
+              <Link
+                href="/signup"
+                className={`folder-tab flex-1 border px-4 py-2.5 text-center text-sm font-bold ${
+                  mode === "signup"
+                    ? "border-line border-b-surface bg-surface text-ink"
+                    : "border-transparent bg-transparent text-ink-faint hover:text-ink-soft"
+                }`}
+              >
+                ✍️ 회원가입
+              </Link>
+            </div>
+            <div className="-mt-2.5 border-b border-line" />
 
           <div className="flex flex-col gap-3">
             {mode === "signup" && (
@@ -109,7 +136,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 placeholder="닉네임"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                className="w-full rounded-xl border border-line px-3.5 py-3.5 text-sm outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
+                className="w-full rounded-xl border border-line bg-surface px-3.5 py-3.5 text-sm text-ink outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
               />
             )}
             <input
@@ -118,7 +145,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               placeholder="이메일"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-line px-3.5 py-3.5 text-sm outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
+              className="w-full rounded-xl border border-line bg-surface px-3.5 py-3.5 text-sm text-ink outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
             />
             <input
               type="password"
@@ -127,7 +154,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               placeholder="비밀번호 (8자 이상)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-line px-3.5 py-3.5 text-sm outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
+              className="w-full rounded-xl border border-line bg-surface px-3.5 py-3.5 text-sm text-ink outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
             />
             {mode === "signup" && (
               <input
@@ -136,7 +163,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                 placeholder="비밀번호 확인"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
-                className="w-full rounded-xl border border-line px-3.5 py-3.5 text-sm outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
+                className="w-full rounded-xl border border-line bg-surface px-3.5 py-3.5 text-sm text-ink outline-none focus:border-coral focus:ring-3 focus:ring-coral/15"
               />
             )}
           </div>
@@ -163,14 +190,15 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
           <div className="h-px bg-line" />
 
-          <p className="text-center text-sm leading-relaxed text-ink-faint">
-            로그인 없이도 포토부스 촬영과 사진 다운로드는 바로 이용할 수
-            있어요.
-            <br />
-            <Link href="/" className="font-bold text-coral-dark">
-              → 그냥 둘러보기
-            </Link>
-          </p>
+            <p className="text-center text-sm leading-relaxed text-ink-faint">
+              로그인 없이도 포토부스 촬영과 사진 다운로드는 바로 이용할 수
+              있어요.
+              <br />
+              <Link href="/" className="font-bold text-coral-dark">
+                → 그냥 둘러보기
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
