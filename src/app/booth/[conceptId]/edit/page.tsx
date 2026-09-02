@@ -75,9 +75,13 @@ export default function EditPage() {
   useEffect(() => {
     const raw = sessionStorage.getItem(CAPTURE_STORAGE_KEY);
     if (!raw) return;
-    const parsed = JSON.parse(raw) as CaptureData;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 세션스토리지에서 촬영본을 읽어와 하이드레이션한다
-    if (parsed.conceptId === conceptId) setCapture(parsed);
+    try {
+      const parsed = JSON.parse(raw) as CaptureData;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 세션스토리지에서 촬영본을 읽어와 하이드레이션한다
+      if (parsed.conceptId === conceptId) setCapture(parsed);
+    } catch {
+      // 저장된 값이 손상됐다면 무시하고 "촬영한 사진이 없어요" 상태로 둔다
+    }
   }, [conceptId]);
 
   // 촬영본 + 프레임을 베이스 캔버스에 그린다

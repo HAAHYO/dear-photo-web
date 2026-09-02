@@ -29,8 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 인증은 세션 쿠키가 진짜 출처지만, 새로고침 사이 화면 상태를 위해
     // 마지막으로 로그인한 사용자 정보만 로컬에 캐시해둔다.
     const raw = localStorage.getItem(USER_KEY);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (raw) setUserState(JSON.parse(raw));
+    if (raw) {
+      try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserState(JSON.parse(raw));
+      } catch {
+        // 저장된 값이 손상됐다면 무시하고 로그아웃 상태로 둔다
+        localStorage.removeItem(USER_KEY);
+      }
+    }
     setIsLoading(false);
   }, []);
 
