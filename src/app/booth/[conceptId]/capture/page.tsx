@@ -32,22 +32,32 @@ export default function CapturePage() {
   const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     let stream: MediaStream | null = null;
 
     async function startCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const media = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
           audio: false,
         });
+        if (!mounted) {
+          // 스트림을 받기 전에 이미 언마운트됐다면 곧바로 꺼서 카메라가 계속 켜진 채로 남지 않게 한다
+          media.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        stream = media;
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch {
-        setCameraError("카메라를 사용할 수 없어요. 권한을 확인해주세요.");
+        if (mounted) setCameraError("카메라를 사용할 수 없어요. 권한을 확인해주세요.");
       }
     }
 
     startCamera();
-    return () => stream?.getTracks().forEach((track) => track.stop());
+    return () => {
+      mounted = false;
+      stream?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
 
   const takeShot = useCallback((): string | null => {
