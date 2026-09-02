@@ -3,9 +3,33 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/widgets/Header";
+import Footer from "@/widgets/Footer";
 import { Button } from "@/shared/ui/Button";
 import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 import { getConcepts } from "@/shared/api/concepts";
+
+const STEPS = [
+  {
+    emoji: "📦",
+    title: "컨셉 고르기",
+    desc: "오늘 마음에 드는 촬영 컨셉과 배경을 골라요.",
+  },
+  {
+    emoji: "📸",
+    title: "네컷 촬영",
+    desc: "카운트다운에 맞춰 네 장의 사진을 남겨요.",
+  },
+  {
+    emoji: "✏️",
+    title: "스티커 & 편지",
+    desc: "스티커를 붙이고 그림을 그려 오늘의 한 줄을 적어요.",
+  },
+  {
+    emoji: "📬",
+    title: "우편함 배달",
+    desc: "다운로드하거나 로그인해서 다이어리 우편함에 저장해요.",
+  },
+];
 
 export default function Home() {
   const { data: concepts, isLoading, isError } = useQuery({
@@ -120,6 +144,36 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Dear, Photo가 하는 일 소개 */}
+      <section className="flex flex-col gap-7 px-5 pb-14 sm:px-8 lg:px-14">
+        <div className="text-center">
+          <h2 className="text-xl font-extrabold sm:text-2xl">Dear, Photo는 이렇게 이용해요</h2>
+          <p className="mt-1.5 text-sm text-ink-faint">
+            네컷 사진을 찍고 꾸며서, 소포처럼 다이어리 우편함에 배달하는 포토부스예요
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((step, i) => (
+            <div key={step.title} className="relative">
+              {/* 뒤에 겹쳐진 카드 두 장으로 종이 더미 같은 입체감을 낸다 */}
+              <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rotate-2 rounded-2xl border border-line bg-paper-soft" />
+              <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 -rotate-1 rounded-2xl border border-line bg-surface" />
+              <div className="relative flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-6 shadow-lg">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-pink text-xl">
+                  {step.emoji}
+                </span>
+                <span className="text-xs font-bold text-coral-dark">STEP {i + 1}</span>
+                <h3 className="font-extrabold">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-ink-faint">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Footer />
     </main>
   );
 }
