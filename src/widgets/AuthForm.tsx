@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import Script from "next/script";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/shared/ui/Button";
 import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 import { useAuth } from "@/shared/auth/AuthContext";
-import { login, signup } from "@/shared/api/auth";
+import { googleLogin, login, signup } from "@/shared/api/auth";
 
 type Mode = "login" | "signup";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -19,6 +22,48 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGsiReady, setIsGsiReady] = useState(false);
+  const googleCodeClientRef = useRef<{ requestCode: () => void } | null>(null);
+
+  async function handleGoogleCode(code: string) {
+    setIsGoogleLoading(true);
+    try {
+      const user = await googleLogin(code);
+      setUser(user);
+      toast.success("구글 계정으로 로그인되었습니다.");
+      router.push("/diary");
+    } catch (error) {
+      toast.error("구글 로그인에 실패했습니다.", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
+
+  function handleGoogleClick() {
+    if (!GOOGLE_CLIENT_ID) {
+      toast.error("구글 로그인이 아직 설정되지 않았어요.");
+      return;
+    }
+    if (!window.google) {
+      toast.error("구글 로그인을 불러오는 중이에요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    if (!googleCodeClientRef.current) {
+      googleCodeClientRef.current = window.google.accounts.oauth2.initCodeClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "email profile",
+        ux_mode: "popup",
+        callback: (response) => {
+          if (response.code) handleGoogleCode(response.code);
+          else if (response.error) toast.error("구글 로그인이 취소됐어요.");
+        },
+      });
+    }
+    googleCodeClientRef.current.requestCode();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +98,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <div className="flex min-h-screen">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onReady={() => setIsGsiReady(true)}
+      />
+
       {/* 왼쪽 안내 패널: 사이트 테마와 무관하게 항상 어두운 "밤편지" 톤으로 고정 */}
       <div className="relative hidden w-[560px] flex-col justify-between overflow-hidden bg-[#211f2b] p-14 text-white lg:flex">
         <div
@@ -170,6 +221,40 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
           <Button type="submit" disabled={isSubmitting} className="w-full">
             {mode === "signup" ? "회원가입" : "로그인"}
+          </Button>
+
+          <div className="flex items-center gap-3 text-xs text-ink-faint">
+            <span className="h-px flex-1 bg-line" />
+            또는
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleGoogleClick}
+            disabled={isGoogleLoading || !isGsiReady}
+            className="w-full gap-2"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <path
+                fill="#4285F4"
+                d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"
+              />
+              <path
+                fill="#34A853"
+                d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"
+              />
+              <path
+                fill="#EA4335"
+                d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"
+              />
+            </svg>
+            구글로 {mode === "signup" ? "가입하기" : "계속하기"}
           </Button>
 
           {mode === "login" ? (
