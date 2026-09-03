@@ -9,7 +9,8 @@
   --color-lemon-dark: #e0be2e;
   --color-coral: #e85d4e;
   --color-coral-dark: #c94b3d;
-  --color-mint: #8fd9c4;
+  --color-mint: #4fd6c4;
+  --color-navy: #2f3550;
   --color-sky: #bfe1f7;
   --color-pink: #f6cfe0;
   --color-ink: #2b2a33;
@@ -29,7 +30,8 @@
   --background: #1c1b24;
   --foreground: #efedf6;
 
-  --color-mint: #7fd0b8;
+  --color-mint: #3fcdb8;
+  --color-navy: #9aa2d6;
   --color-sky: #7fb4dd;
   --color-pink: #d99cb8;
   --color-ink: #efedf6;
@@ -50,6 +52,7 @@
   --color-coral: var(--color-coral);
   --color-coral-dark: var(--color-coral-dark);
   --color-mint: var(--color-mint);
+  --color-navy: var(--color-navy);
   --color-ink: var(--color-ink);
   --color-ink-soft: var(--color-ink-soft);
   --color-ink-faint: var(--color-ink-faint);
@@ -64,13 +67,40 @@
     "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
+/* 우편 컨셉 배경(도트 + 은은한 그라데이션). body에 한 번만 깔아서 헤더/본문/푸터가
+   각자 따로 배경을 그리며 이음매가 생기지 않고 페이지 전체가 하나로 이어지게 한다.
+   헤더/푸터는 이 배경 위에 투명하게 얹히는 형태를 유지할 것 (bg-surface 등으로 막지 말 것). */
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(var(--color-line) 1.4px, transparent 1.4px),
+    radial-gradient(
+      ellipse at top left,
+      color-mix(in srgb, var(--color-pink) 85%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      color-mix(in srgb, var(--color-sky) 85%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in srgb, var(--color-lemon) 35%, transparent) 0%,
+      transparent 45%
+    );
+  background-size:
+    22px 22px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
 }
 
-/* 우편/소포 컨셉 유틸리티 */
+/* 사진 프레임 안쪽처럼 배경과 분리된 영역에 같은 톤을 재사용하고 싶을 때만 쓴다
+   (지금은 edit 페이지의 캔버스 영역에서만 사용). 페이지 전체 배경 용도로는 body를 그대로 둔다. */
 .mail-dot-bg {
   background-color: var(--color-paper-soft);
   background-image: radial-gradient(var(--color-line) 1.4px, transparent 1.4px);
@@ -113,7 +143,7 @@ body {
     -45deg,
     var(--color-coral) 0 12px,
     #ffffff 12px 18px,
-    #2f3550 18px 30px,
+    var(--color-navy) 18px 30px,
     #ffffff 30px 36px
   );
 }
@@ -122,13 +152,7 @@ body {
   border-radius: 14px;
 }
 
-/* 토스트: 위에서 떨어지지 않고 오른쪽에서 옆으로 슬라이드 인/아웃 (부드러운 이징) */
-[data-sonner-toast][data-mounted="false"][data-y-position="top"] {
-  --y: translateX(120%) !important;
-}
-[data-sonner-toast][data-removed="true"][data-swipe-out="false"][data-y-position="top"] {
-  --y: translateX(120%) !important;
-}
+/* 토스트: 위에서 떨어지는 기본 방향은 유지하되 이징만 부드럽게 */
 [data-sonner-toast][data-y-position="top"] {
   transition:
     transform 420ms cubic-bezier(0.22, 1, 0.36, 1),

@@ -16,7 +16,7 @@ import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 const FRAME_W = 400;
 const FRAME_H = 640;
 const CANVAS_SCALE = 2;
-const BRUSH_COLORS = ["#26221F", "#E85D4E", "#F5D547", "#8FD9C4"];
+const BRUSH_COLORS = ["#26221F", "#E85D4E", "#F5D547", "#4FD6C4"];
 const FALLBACK_FRAME_COLOR = "#E85D4E";
 
 type PlacedSticker = {

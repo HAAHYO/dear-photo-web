@@ -8,33 +8,64 @@ import { Button } from "@/shared/ui/Button";
 import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
 import { getConcepts } from "@/shared/api/concepts";
 
-const STEPS = [
-  {
-    emoji: "📦",
-    title: "컨셉 고르기",
-    desc: "오늘 마음에 드는 촬영 컨셉과 배경을 골라요.",
-  },
-  {
-    emoji: "📸",
-    title: "네컷 촬영",
-    desc: "카운트다운에 맞춰 네 장의 사진을 남겨요.",
-  },
-  {
-    emoji: "✏️",
-    title: "스티커 & 편지",
-    desc: "스티커를 붙이고 그림을 그려 오늘의 한 줄을 적어요.",
-  },
-  {
-    emoji: "📬",
-    title: "우편함 배달",
-    desc: "다운로드하거나 로그인해서 다이어리 우편함에 저장해요.",
-  },
+const NOTICES = [
+  { date: "2026-09-02", title: "우편 컨셉으로 화면 전체를 새단장했어요" },
+  { date: "2026-08-20", title: "다이어리 우편함에 스티커 꾸미기 기능이 추가됐어요" },
+  { date: "2026-08-05", title: "베타 오픈: 로그인 없이도 촬영·다운로드가 가능해요" },
 ];
 
-const NOTICES = [
-  { date: "09.02", tag: "NEW", title: "우편 컨셉으로 화면 전체를 새단장했어요" },
-  { date: "08.20", tag: "안내", title: "다이어리 우편함에 스티커 꾸미기 기능이 추가됐어요" },
-  { date: "08.05", tag: "안내", title: "베타 오픈: 로그인 없이도 촬영·다운로드가 가능해요" },
+const QUICK_LINKS = [
+  {
+    href: "/",
+    label: "포토부스 바로가기",
+    bg: "bg-coral/20",
+    fg: "text-coral-dark",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 7l1.3-2h5.4L16 7" />
+        <rect x="3" y="7" width="18" height="12.5" rx="2.5" />
+        <circle cx="12" cy="13.2" r="3.6" />
+      </svg>
+    ),
+  },
+  {
+    href: "/diary",
+    label: "마이다이어리 우편함",
+    bg: "bg-mint/50",
+    fg: "text-[#0d8c7a]",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4.5" y="3.5" width="15" height="17" rx="2" />
+        <path d="M8.5 8h7M8.5 11h4" />
+      </svg>
+    ),
+  },
+  {
+    href: "/mypage",
+    label: "마이페이지",
+    bg: "bg-navy/15",
+    fg: "text-navy",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2.5" />
+        <circle cx="9" cy="11" r="2.1" />
+        <path d="M5.3 16c.5-1.7 1.8-2.6 3.7-2.6s3.2.9 3.7 2.6" />
+        <path d="M14.5 9.5h3M14.5 12h3" />
+      </svg>
+    ),
+  },
+  {
+    href: "/how-it-works",
+    label: "이용 방법 보기",
+    bg: "bg-lemon/60",
+    fg: "text-[#8a6a12]",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v4l2.5 2.5" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -49,7 +80,7 @@ export default function Home() {
   const CARD_TILTS = ["-rotate-1", "rotate-1", "-rotate-2", "rotate-2", "rotate-1"];
 
   return (
-    <main className="mail-dot-bg flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col">
       <Header />
 
       <section className="px-5 py-6 sm:px-8 sm:py-10 lg:px-14">
@@ -86,20 +117,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 공지사항: 우체국 게시판 느낌 */}
-      <section className="px-5 pb-10 sm:px-8 lg:px-14">
-        <div className="rounded-2xl border border-line bg-surface p-6 shadow-md sm:p-7">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-extrabold">
-              📋 공지사항
-            </h2>
-            <button
-              type="button"
-              aria-label="공지사항 더보기"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line text-ink-faint transition-colors hover:border-ink hover:text-ink"
+      {/* 공지사항 + 바로가기 */}
+      <section className="flex flex-col gap-5 px-5 pb-10 sm:px-8 lg:flex-row lg:px-14">
+        <div className="flex-1 rounded-2xl border border-line bg-surface p-6 shadow-md sm:p-7">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-extrabold">📋 공지사항</h2>
+            <Link
+              href="/diary"
+              className="flex items-center gap-0.5 text-xs font-bold text-ink-faint transition-colors hover:text-ink"
             >
-              +
-            </button>
+              더보기 <span aria-hidden>›</span>
+            </Link>
           </div>
           <ul className="flex flex-col">
             {NOTICES.map((notice, i) => (
@@ -107,18 +135,29 @@ export default function Home() {
                 key={notice.title}
                 className={`flex items-center gap-3 py-3 text-sm ${i > 0 ? "border-t border-dashed border-line" : ""}`}
               >
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    notice.tag === "NEW" ? "bg-pink text-coral-dark" : "bg-paper-soft text-ink-faint"
-                  }`}
-                >
-                  {notice.tag}
+                <span className="shrink-0 rounded-full border border-line px-2.5 py-0.5 text-[11px] font-bold text-ink-soft">
+                  공지
                 </span>
                 <span className="flex-1 truncate">{notice.title}</span>
                 <span className="shrink-0 text-xs text-ink-faint">{notice.date}</span>
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:w-[380px] lg:shrink-0">
+          {QUICK_LINKS.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-line bg-surface p-5 text-center shadow-md transition-transform hover:-translate-y-1 hover:border-coral"
+            >
+              <span className={`flex h-10 w-10 items-center justify-center rounded-full ${link.bg} ${link.fg}`}>
+                {link.icon}
+              </span>
+              <span className="text-xs font-bold text-ink-soft">{link.label}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -187,31 +226,21 @@ export default function Home() {
         )}
       </section>
 
-      {/* Dear, Photo가 하는 일 소개 */}
-      <section className="flex flex-col gap-7 px-5 pb-14 sm:px-8 lg:px-14">
-        <div className="text-center">
-          <h2 className="text-xl font-extrabold sm:text-2xl">Dear, Photo는 이렇게 이용해요</h2>
-          <p className="mt-1.5 text-sm text-ink-faint">
-            네컷 사진을 찍고 꾸며서, 소포처럼 다이어리 우편함에 배달하는 포토부스예요
+      {/* Dear, Photo가 뭔지 한 줄 소개 + 자세히 보기 */}
+      <section className="px-5 pb-14 sm:px-8 lg:px-14">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-gradient-to-r from-pink/50 via-surface to-surface px-6 py-5 shadow-md sm:flex-row sm:gap-5 sm:px-7">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-sm">
+            📮
+          </span>
+          <p className="flex-1 text-center text-sm leading-relaxed text-ink-soft sm:text-left">
+            <span className="font-extrabold text-ink">Dear, Photo</span>는 네컷 사진을 찍고 꾸며서,
+            소포처럼 다이어리 우편함으로 배달하는 포토부스예요.
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => (
-            <div key={step.title} className="relative h-full">
-              {/* 뒤에 겹쳐진 카드 두 장으로 종이 더미 같은 입체감을 낸다 (회전 없이 폭/높이를 그대로 따라가게 해서 내용 길이가 달라도 삐져나오지 않는다) */}
-              <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl border border-line bg-paper-soft" />
-              <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl border border-line bg-surface" />
-              <div className="relative flex h-full flex-col gap-2.5 rounded-2xl border border-line bg-surface p-6 shadow-lg">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-pink text-xl">
-                  {step.emoji}
-                </span>
-                <span className="text-xs font-bold text-coral-dark">STEP {i + 1}</span>
-                <h3 className="font-extrabold">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-ink-faint">{step.desc}</p>
-              </div>
-            </div>
-          ))}
+          <Link href="/how-it-works" className="shrink-0">
+            <Button variant="white" className="whitespace-nowrap">
+              이용 방법 보기 →
+            </Button>
+          </Link>
         </div>
       </section>
 
