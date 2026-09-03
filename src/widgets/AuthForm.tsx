@@ -234,9 +234,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             variant="ghost"
             onClick={handleGoogleClick}
             disabled={isGoogleLoading || !isGsiReady}
-            className="w-full gap-2"
+            className="inline-flex w-full items-center justify-center gap-2"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18">
+            <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
               <path
                 fill="#4285F4"
                 d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"
@@ -276,8 +276,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           <div className="h-px bg-line" />
 
             <p className="text-center text-sm leading-relaxed text-ink-faint">
-              로그인 없이도 포토부스 촬영과 사진 다운로드는 바로 이용할 수
-              있어요.
+              로그인 없이도 촬영·다운로드는 바로 이용할 수 있어요.
               <br />
               <Link href="/" className="font-bold text-coral-dark">
                 → 그냥 둘러보기
