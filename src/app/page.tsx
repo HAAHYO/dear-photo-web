@@ -16,7 +16,7 @@ const NOTICES = [
 
 const QUICK_LINKS = [
   {
-    href: "/",
+    href: "#concepts",
     label: "포토부스 바로가기",
     bg: "bg-coral/20",
     fg: "text-coral-dark",
@@ -161,7 +161,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-5 px-5 pb-10 sm:px-8 sm:pb-14 lg:px-14">
+      <section id="concepts" className="flex scroll-mt-20 flex-col gap-5 px-5 pb-10 sm:px-8 sm:pb-14 lg:px-14">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-extrabold">📦 컨셉 선택</h2>
           <span className="text-sm text-ink-faint">
