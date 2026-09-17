@@ -18,8 +18,7 @@ const QUICK_LINKS = [
   {
     href: "#concepts",
     label: "포토부스 바로가기",
-    bg: "bg-coral/20",
-    fg: "text-coral-dark",
+    chip: "chip-coral",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <path d="M8 7l1.3-2h5.4L16 7" />
@@ -31,8 +30,7 @@ const QUICK_LINKS = [
   {
     href: "/diary",
     label: "마이다이어리 우편함",
-    bg: "bg-mint/50",
-    fg: "text-[#0d8c7a]",
+    chip: "chip-mint",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <rect x="4.5" y="3.5" width="15" height="17" rx="2" />
@@ -43,8 +41,7 @@ const QUICK_LINKS = [
   {
     href: "/mypage",
     label: "마이페이지",
-    bg: "bg-navy/15",
-    fg: "text-navy",
+    chip: "chip-navy",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="5" width="18" height="14" rx="2.5" />
@@ -57,8 +54,7 @@ const QUICK_LINKS = [
   {
     href: "/how-it-works",
     label: "이용 방법 보기",
-    bg: "bg-lemon/60",
-    fg: "text-[#8a6a12]",
+    chip: "chip-lemon",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9" />
@@ -152,7 +148,7 @@ export default function Home() {
               href={link.href}
               className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-line bg-surface p-5 text-center shadow-md transition-transform hover:-translate-y-1 hover:border-coral"
             >
-              <span className={`flex h-10 w-10 items-center justify-center rounded-full ${link.bg} ${link.fg}`}>
+              <span className={`flex h-10 w-10 items-center justify-center rounded-full ${link.chip}`}>
                 {link.icon}
               </span>
               <span className="text-xs font-bold text-ink-soft">{link.label}</span>

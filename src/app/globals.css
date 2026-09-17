@@ -10,6 +10,7 @@
   --color-coral: #e85d4e;
   --color-coral-dark: #c94b3d;
   --color-mint: #4fd6c4;
+  --color-mint-dark: #0d8c7a;
   --color-navy: #2f3550;
   --color-sky: #bfe1f7;
   --color-pink: #f6cfe0;
@@ -25,23 +26,34 @@
   --color-surface-alt: #fbfaff;
 }
 
-/* 다크모드는 시스템 설정을 자동으로 따라가지 않는다 — 오직 헤더의 다크모드 토글로만 켜진다. */
+/* 다크모드는 시스템 설정을 자동으로 따라가지 않는다 — 오직 헤더의 다크모드 토글로만 켜진다.
+   배경(--background)과 카드(--color-surface)의 명도 차이를 확실히 벌려서, 카드가 배경에
+   묻혀 "색이 다 사라진 것처럼" 보이지 않게 한다. */
 :root[data-theme="dark"] {
-  --background: #1c1b24;
-  --foreground: #efedf6;
+  --background: #14131b;
+  --foreground: #f1eef8;
 
-  --color-mint: #3fcdb8;
-  --color-navy: #9aa2d6;
-  --color-sky: #7fb4dd;
-  --color-pink: #d99cb8;
-  --color-ink: #efedf6;
-  --color-ink-soft: #c3c0d1;
-  --color-ink-faint: #8b899b;
-  --color-paper: #1c1b24;
-  --color-paper-soft: #262533;
-  --color-line: #38364a;
-  --color-surface: #262533;
-  --color-surface-alt: #2d2c3c;
+  --color-mint: #4fe0cb;
+  --color-navy: #a7aee0;
+  --color-sky: #8fc0ea;
+  --color-pink: #e3a7c4;
+  --color-ink: #f1eef8;
+  --color-ink-soft: #cac6da;
+  --color-ink-faint: #948fac;
+  --color-paper: #14131b;
+  --color-paper-soft: #221f2d;
+  --color-line: #423f57;
+  --color-surface: #2b2839;
+  --color-surface-alt: #363146;
+}
+
+/* 다크모드에서는 배경 그라데이션을 더 낮은 농도로 — 그대로 두면 코너가 밝은 파스텔
+   덩어리로 떠서, 그 위에 투명하게 얹힌 헤더/푸터 글자의 대비가 무너진다
+   (다이어리/약관 링크 글자가 잘 안 보이던 문제). body 자체 선언을 덮어써야 하므로
+   :root가 아니라 body를 직접 선택한다. */
+:root[data-theme="dark"] body {
+  --gradient-corner-mix: 45%;
+  --gradient-center-mix: 18%;
 }
 
 @theme inline {
@@ -71,22 +83,26 @@
    각자 따로 배경을 그리며 이음매가 생기지 않고 페이지 전체가 하나로 이어지게 한다.
    헤더/푸터는 이 배경 위에 투명하게 얹히는 형태를 유지할 것 (bg-surface 등으로 막지 말 것). */
 body {
+  /* 그라데이션 진하기. 다크모드에서는 낮춰서(아래 오버라이드) 배경이 너무 밝아지는 걸
+     막는다 — 밝아지면 헤더/푸터처럼 투명하게 얹힌 글자의 대비가 무너진다. */
+  --gradient-corner-mix: 85%;
+  --gradient-center-mix: 35%;
   background-color: var(--background);
   background-image:
     radial-gradient(var(--color-line) 1.4px, transparent 1.4px),
     radial-gradient(
       ellipse at top left,
-      color-mix(in srgb, var(--color-pink) 85%, transparent) 0%,
+      color-mix(in srgb, var(--color-pink) var(--gradient-corner-mix), transparent) 0%,
       transparent 62%
     ),
     radial-gradient(
       ellipse at bottom right,
-      color-mix(in srgb, var(--color-sky) 85%, transparent) 0%,
+      color-mix(in srgb, var(--color-sky) var(--gradient-corner-mix), transparent) 0%,
       transparent 62%
     ),
     radial-gradient(
       ellipse at 50% 40%,
-      color-mix(in srgb, var(--color-lemon) 35%, transparent) 0%,
+      color-mix(in srgb, var(--color-lemon) var(--gradient-center-mix), transparent) 0%,
       transparent 45%
     );
   background-size:
@@ -97,6 +113,27 @@ body {
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* 아이콘 배지 칩: bg-coral/20 같은 반투명 배경은 다크모드에서 어두운 카드 배경과
+   섞여 칙칙해지면서 그 위 고정 텍스트/아이콘 색과 대비가 무너진다(다이어리 우편함
+   아이콘이 거의 안 보이던 문제). 그래서 항상 흰색과 섞은 "고정 파스텔" 배경을 쓰고,
+   아이콘/텍스트 색도 테마와 무관하게 고정해 항상 또렷하게 보이도록 한다. */
+.chip-coral {
+  background-color: color-mix(in srgb, var(--color-coral) 22%, white);
+  color: var(--color-coral-dark);
+}
+.chip-mint {
+  background-color: color-mix(in srgb, var(--color-mint) 30%, white);
+  color: var(--color-mint-dark);
+}
+.chip-navy {
+  background-color: color-mix(in srgb, var(--color-navy) 18%, white);
+  color: #2f3550;
+}
+.chip-lemon {
+  background-color: color-mix(in srgb, var(--color-lemon) 32%, white);
+  color: var(--color-lemon-dark);
 }
 
 /* 사진 프레임 안쪽처럼 배경과 분리된 영역에 같은 톤을 재사용하고 싶을 때만 쓴다
