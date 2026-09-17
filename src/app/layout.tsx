@@ -26,6 +26,9 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* 사이트가 직접 라이트/다크를 관리한다고 브라우저에 알려서, 크롬 등이
+            OS 다크 설정을 보고 페이지를 임의로 강제 다크화하는 걸 막는다 */}
+        <meta name="color-scheme" content="light dark" />
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
         </Script>
