@@ -161,3 +161,17 @@ body {
     box-shadow 200ms !important;
 }
 
+/* 촬영 완료 후 인화지가 프린터 슬롯에서 나오는 연출 */
+@keyframes print-strip-out {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.print-strip {
+  animation: print-strip-out 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
