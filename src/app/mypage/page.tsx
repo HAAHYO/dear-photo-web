@@ -51,13 +51,13 @@ export default function MyPage() {
   }
 
   return (
-    <main className="mail-dot-bg flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col">
       <Header />
 
       <section className="flex flex-col gap-6 px-5 py-8 sm:px-8 sm:py-11 lg:px-14">
         <h1 className="text-[26px] font-extrabold">📇 마이페이지</h1>
 
-        <div className="airmail-frame max-w-lg shadow-md">
+        <div className="airmail-frame mx-auto w-full max-w-lg shadow-md">
           <div className="flex flex-col gap-5 bg-surface p-6 sm:p-8">
             <div>
               <span className="text-xs font-bold text-ink-faint">닉네임</span>

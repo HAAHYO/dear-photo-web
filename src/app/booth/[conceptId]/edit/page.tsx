@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -12,12 +12,27 @@ import { Button } from "@/shared/ui/Button";
 import { useAuth } from "@/shared/auth/AuthContext";
 import { saveDiaryEntry } from "@/shared/api/diary";
 import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
+import {
+  getPhotoLayout,
+  frameHeightFor,
+  slotWidthFor,
+  FRAME_W,
+  PAD,
+  GAP,
+} from "@/shared/config/photoLayouts";
 
-const FRAME_W = 400;
-const FRAME_H = 640;
 const CANVAS_SCALE = 2;
-const BRUSH_COLORS = ["#26221F", "#E85D4E", "#F5D547", "#8FD9C4"];
 const FALLBACK_FRAME_COLOR = "#E85D4E";
+const DEFAULT_BRUSH_COLOR = "#26221F";
+
+type BrushType = "pen" | "marker" | "highlighter" | "eraser";
+
+const BRUSH_TYPES: { type: BrushType; label: string; emoji: string }[] = [
+  { type: "pen", label: "펜", emoji: "🖊️" },
+  { type: "marker", label: "마카", emoji: "🖌️" },
+  { type: "highlighter", label: "형광펜", emoji: "🖍️" },
+  { type: "eraser", label: "지우개", emoji: "🧽" },
+];
 
 type PlacedSticker = {
   id: string;
@@ -26,7 +41,7 @@ type PlacedSticker = {
   yPct: number;
 };
 
-type CaptureData = { conceptId: number; shots: string[] };
+type CaptureData = { conceptId: number; shots: string[]; layoutId?: string };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -36,6 +51,37 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
+}
+
+// object-fit: cover와 동일하게, 원본 비율을 유지한 채 중앙을 기준으로 잘라서 그린다
+// (그냥 drawImage(dw, dh)로 늘려 그리면 사진이 찌부러져 보인다)
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource & { width: number; height: number },
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number
+) {
+  const sourceRatio = img.width / img.height;
+  const targetRatio = dw / dh;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = img.width;
+  let sh = img.height;
+
+  if (sourceRatio > targetRatio) {
+    // 원본이 더 넓다 → 좌우를 잘라낸다
+    sw = img.height * targetRatio;
+    sx = (img.width - sw) / 2;
+  } else {
+    // 원본이 더 좁다(세로로 길다) → 위아래를 잘라낸다
+    sh = img.width / targetRatio;
+    sy = (img.height - sh) / 2;
+  }
+
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
 export default function EditPage() {
@@ -61,7 +107,9 @@ export default function EditPage() {
   const [tab, setTab] = useState<"sticker" | "draw">("sticker");
   const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [brushColor, setBrushColor] = useState(BRUSH_COLORS[0]);
+  const [brushColor, setBrushColor] = useState(DEFAULT_BRUSH_COLOR);
+  const [brushSize, setBrushSize] = useState(4);
+  const [brushType, setBrushType] = useState<BrushType>("pen");
   const [content, setContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -71,6 +119,9 @@ export default function EditPage() {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const isPointerDown = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
+
+  const layout = useMemo(() => getPhotoLayout(capture?.layoutId), [capture?.layoutId]);
+  const frameH = frameHeightFor(layout);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(CAPTURE_STORAGE_KEY);
@@ -90,14 +141,14 @@ export default function EditPage() {
     if (!canvas || !capture) return;
 
     canvas.width = FRAME_W * CANVAS_SCALE;
-    canvas.height = FRAME_H * CANVAS_SCALE;
+    canvas.height = frameH * CANVAS_SCALE;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const pad = 20 * CANVAS_SCALE;
-    const gap = 8 * CANVAS_SCALE;
-    const slotW = canvas.width - pad * 2;
-    const slotH = (canvas.height - pad * 2 - gap * 3) / 4;
+    const pad = PAD * CANVAS_SCALE;
+    const gap = GAP * CANVAS_SCALE;
+    const slotW = slotWidthFor(layout) * CANVAS_SCALE;
+    const slotH = layout.slotH * CANVAS_SCALE;
 
     async function render() {
       if (!ctx || !canvas) return;
@@ -106,8 +157,11 @@ export default function EditPage() {
 
       const photos = await Promise.all(capture!.shots.map(loadImage));
       photos.forEach((img, i) => {
-        const y = pad + i * (slotH + gap);
-        ctx.drawImage(img, pad, y, slotW, slotH);
+        const col = i % layout.cols;
+        const row = Math.floor(i / layout.cols);
+        const x = pad + col * (slotW + gap);
+        const y = pad + row * (slotH + gap);
+        drawImageCover(ctx, img, x, y, slotW, slotH);
       });
 
       if (concept?.frameImageUrl) {
@@ -138,14 +192,14 @@ export default function EditPage() {
     }
 
     render();
-  }, [capture, concept]);
+  }, [capture, concept, frameH, layout]);
 
   useEffect(() => {
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     canvas.width = FRAME_W * CANVAS_SCALE;
-    canvas.height = FRAME_H * CANVAS_SCALE;
-  }, []);
+    canvas.height = frameH * CANVAS_SCALE;
+  }, [frameH]);
 
   function toCanvasPoint(e: React.PointerEvent) {
     const canvas = drawCanvasRef.current;
@@ -170,13 +224,35 @@ export default function EditPage() {
     const point = toCanvasPoint(e);
     if (!ctx || !point || !lastPoint.current) return;
 
-    ctx.strokeStyle = brushColor;
-    ctx.lineWidth = 4 * CANVAS_SCALE;
-    ctx.lineCap = "round";
+    ctx.save();
+    ctx.lineJoin = "round";
+    if (brushType === "eraser") {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.globalAlpha = 1;
+      ctx.lineCap = "round";
+      ctx.lineWidth = brushSize * 1.5 * CANVAS_SCALE;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = brushColor;
+      if (brushType === "highlighter") {
+        ctx.globalAlpha = 0.35;
+        ctx.lineCap = "butt";
+        ctx.lineWidth = brushSize * 2.2 * CANVAS_SCALE;
+      } else if (brushType === "marker") {
+        ctx.globalAlpha = 0.9;
+        ctx.lineCap = "round";
+        ctx.lineWidth = brushSize * 1.4 * CANVAS_SCALE;
+      } else {
+        ctx.globalAlpha = 1;
+        ctx.lineCap = "round";
+        ctx.lineWidth = brushSize * CANVAS_SCALE;
+      }
+    }
     ctx.beginPath();
     ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
+    ctx.restore();
     lastPoint.current = point;
   }
 
@@ -331,7 +407,7 @@ export default function EditPage() {
 
             <div
               className="relative w-full overflow-hidden rounded-sm"
-              style={{ aspectRatio: `${FRAME_W - 24} / ${FRAME_H}` }}
+              style={{ aspectRatio: `${FRAME_W - 24} / ${frameH}` }}
             >
               <canvas ref={baseCanvasRef} className="absolute inset-0 h-full w-full" />
               <canvas
@@ -430,20 +506,53 @@ export default function EditPage() {
             </div>
           </div>
         ) : (
-          <div className="-mt-2 flex items-center gap-2.5 rounded-xl bg-paper p-3">
-            <span className="text-xs text-ink-soft">브러시 색상</span>
-            <div className="ml-auto flex gap-1.5">
-              {BRUSH_COLORS.map((color) => (
+          <div className="-mt-2 flex flex-col gap-3 rounded-xl bg-paper p-3">
+            <div className="grid grid-cols-4 gap-1.5">
+              {BRUSH_TYPES.map(({ type, label, emoji }) => (
                 <button
-                  key={color}
-                  onClick={() => setBrushColor(color)}
-                  className={`h-5 w-5 cursor-pointer rounded-full transition-transform hover:scale-110 ${
-                    brushColor === color ? "ring-2 ring-offset-2 ring-ink" : ""
+                  key={type}
+                  onClick={() => setBrushType(type)}
+                  className={`flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border py-2 text-[11px] font-bold transition-colors ${
+                    brushType === type
+                      ? "border-coral bg-[#FBEAE6] text-coral-dark"
+                      : "border-line bg-surface text-ink-faint hover:text-ink-soft"
                   }`}
-                  style={{ backgroundColor: color }}
-                  aria-label={color}
-                />
+                >
+                  <span className="text-base">{emoji}</span>
+                  {label}
+                </button>
               ))}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <span className="shrink-0 text-xs text-ink-soft">색상</span>
+              <input
+                type="color"
+                value={brushColor}
+                onChange={(e) => setBrushColor(e.target.value)}
+                disabled={brushType === "eraser"}
+                className="h-8 w-8 shrink-0 cursor-pointer rounded-md border border-line bg-surface p-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="브러시 색상 선택"
+              />
+              <span className="ml-auto shrink-0 text-xs text-ink-soft">굵기</span>
+              <input
+                type="range"
+                min={2}
+                max={24}
+                value={brushSize}
+                onChange={(e) => setBrushSize(Number(e.target.value))}
+                className="w-full cursor-pointer accent-coral"
+                aria-label="브러시 굵기"
+              />
+              <span
+                className="shrink-0 rounded-full border border-line"
+                style={{
+                  width: Math.min(brushSize, 20),
+                  height: Math.min(brushSize, 20),
+                  backgroundColor: brushType === "eraser" ? "transparent" : brushColor,
+                }}
+                aria-hidden
+              />
             </div>
           </div>
         )}
