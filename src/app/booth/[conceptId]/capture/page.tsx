@@ -15,9 +15,23 @@ import {
   slotAspectRatio,
 } from "@/shared/config/photoLayouts";
 import { PostmarkStamp } from "@/shared/ui/PostmarkStamp";
+import { silenceMediapipeConsoleNoise } from "@/shared/lib/silenceMediapipeLogs";
+import type { GestureRecognizer as GestureRecognizerType } from "@mediapipe/tasks-vision";
 
 const COUNTDOWN_SECONDS = 3;
 const PRINT_ANIMATION_MS = 1500;
+
+// 손 제스처(브이 사인) 자동 촬영 — 기존 셔터 버튼의 "보조 수단"이라 실패해도
+// (모델 로딩 실패, 저사양 기기 등) 조용히 꺼지고 버튼은 그대로 동작해야 한다.
+// (spike/motion-capture 프로토타입에서 검증한 값 그대로 사용)
+const GESTURE_TASKS_VISION_VERSION = "1.0.1";
+const GESTURE_WASM_BASE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${GESTURE_TASKS_VISION_VERSION}/wasm`;
+const GESTURE_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task";
+const GESTURE_TARGET = "Victory";
+const GESTURE_CONFIDENCE_THRESHOLD = 0.65;
+const GESTURE_HOLD_MS = 700;
+const GESTURE_INFERENCE_INTERVAL_MS = 150;
 
 const FILTERS = [
   { id: "none", label: "원본", css: "none" },
@@ -73,6 +87,15 @@ export default function CapturePage() {
   const [isBusy, setIsBusy] = useState(false);
   // 다 찍었으면 곧바로 넘어가지 않고, 프린터에서 인화지가 나오는 연출을 먼저 보여준다
   const isPrinting = shots.length === layout.shots && !!concept;
+
+  // 손 제스처(브이 사인) 자동 촬영 — 셔터 버튼의 보조 수단
+  const [isGestureReady, setIsGestureReady] = useState(false);
+  const [gestureHoldProgress, setGestureHoldProgress] = useState(0);
+  const gestureRecognizerRef = useRef<GestureRecognizerType | null>(null);
+  const gestureRafRef = useRef<number | null>(null);
+  const gestureLastInferenceAtRef = useRef(0);
+  const gestureLastTimestampRef = useRef(0);
+  const gestureHoldStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -139,6 +162,103 @@ export default function CapturePage() {
     }
     setIsBusy(false);
   }, [isBusy, concept, takeShot]);
+
+  // 손 제스처 모델 로딩. 실패해도(저사양 기기, 네트워크 등) 조용히 포기하고
+  // 기존 셔터 버튼만으로 촬영할 수 있도록 에러를 사용자에게 노출하지 않는다.
+  useEffect(() => {
+    let cancelled = false;
+    const restoreConsole = silenceMediapipeConsoleNoise();
+
+    async function loadGestureRecognizer() {
+      try {
+        const { GestureRecognizer, FilesetResolver } = await import("@mediapipe/tasks-vision");
+        const filesetResolver = await FilesetResolver.forVisionTasks(GESTURE_WASM_BASE_URL);
+        const recognizer = await GestureRecognizer.createFromOptions(filesetResolver, {
+          baseOptions: { modelAssetPath: GESTURE_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numHands: 1,
+        });
+        if (cancelled) {
+          recognizer.close();
+          return;
+        }
+        gestureRecognizerRef.current = recognizer;
+        setIsGestureReady(true);
+      } catch (error) {
+        // 보조 기능일 뿐이라 콘솔에만 남기고 조용히 넘어간다
+        console.warn("[동작 인식] 손 제스처 모델 로딩 실패, 셔터 버튼만 사용합니다.", error);
+      }
+    }
+
+    loadGestureRecognizer();
+    return () => {
+      cancelled = true;
+      gestureRecognizerRef.current?.close();
+      gestureRecognizerRef.current = null;
+      restoreConsole();
+    };
+  }, []);
+
+  // 손 제스처 인식 루프: 브이 사인을 GESTURE_HOLD_MS만큼 유지하면 셔터 버튼을 누른 것과
+  // 동일하게 runShotSequence를 호출한다. 매 컷마다 다시 유지해야 다음 컷이 찍히도록,
+  // 트리거된 즉시 유지 시작 시각을 리셋한다.
+  useEffect(() => {
+    if (!isGestureReady) return;
+
+    function loop() {
+      gestureRafRef.current = requestAnimationFrame(loop);
+
+      const video = videoRef.current;
+      const recognizer = gestureRecognizerRef.current;
+      if (!video || !recognizer || video.videoWidth === 0) return;
+      if (isBusy || !!cameraError || shots.length >= layout.shots || isPrinting) {
+        gestureHoldStartRef.current = null;
+        setGestureHoldProgress(0);
+        return;
+      }
+
+      const now = performance.now();
+      if (now - gestureLastInferenceAtRef.current < GESTURE_INFERENCE_INTERVAL_MS) return;
+      gestureLastInferenceAtRef.current = now;
+
+      // recognizeForVideo는 정수 + 단조 증가하는 타임스탬프를 요구한다
+      let ts = Math.round(now);
+      if (ts <= gestureLastTimestampRef.current) ts = gestureLastTimestampRef.current + 1;
+      gestureLastTimestampRef.current = ts;
+
+      let result;
+      try {
+        result = recognizer.recognizeForVideo(video, ts);
+      } catch {
+        return;
+      }
+
+      const topGesture = result.gestures[0]?.[0];
+      const isTarget =
+        topGesture?.categoryName === GESTURE_TARGET && topGesture.score >= GESTURE_CONFIDENCE_THRESHOLD;
+
+      if (isTarget) {
+        if (gestureHoldStartRef.current === null) gestureHoldStartRef.current = now;
+        const held = now - gestureHoldStartRef.current;
+        const progress = Math.min(1, held / GESTURE_HOLD_MS);
+        setGestureHoldProgress(progress);
+        if (progress >= 1) {
+          // 다음 컷을 위해 즉시 리셋 — 계속 손을 들고 있어도 매 컷마다 다시 채워야 한다
+          gestureHoldStartRef.current = null;
+          setGestureHoldProgress(0);
+          runShotSequence();
+        }
+      } else {
+        gestureHoldStartRef.current = null;
+        setGestureHoldProgress(0);
+      }
+    }
+
+    gestureRafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (gestureRafRef.current) cancelAnimationFrame(gestureRafRef.current);
+    };
+  }, [isGestureReady, isBusy, cameraError, shots.length, layout.shots, isPrinting, runShotSequence]);
 
   useEffect(() => {
     if (!isPrinting || !concept) return;
@@ -371,15 +491,41 @@ export default function CapturePage() {
             ))}
           </div>
 
-          <button
-            onClick={runShotSequence}
-            disabled={isBusy || !!cameraError || shots.length >= layout.shots}
-            className="mt-7 h-19 w-19 cursor-pointer rounded-full border-4 border-white bg-coral disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="촬영하기"
-          />
+          <div className="relative mt-7">
+            {gestureHoldProgress > 0 && (
+              <svg
+                className="pointer-events-none absolute -inset-1.5 -rotate-90"
+                viewBox="0 0 84 84"
+                aria-hidden
+              >
+                <circle cx="42" cy="42" r="39" fill="none" stroke="#F5D547" strokeWidth="3" strokeOpacity="0.25" />
+                <circle
+                  cx="42"
+                  cy="42"
+                  r="39"
+                  fill="none"
+                  stroke="#F5D547"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 39}
+                  strokeDashoffset={2 * Math.PI * 39 * (1 - gestureHoldProgress)}
+                  className="transition-[stroke-dashoffset] duration-100"
+                />
+              </svg>
+            )}
+            <button
+              onClick={runShotSequence}
+              disabled={isBusy || !!cameraError || shots.length >= layout.shots}
+              className="h-19 w-19 cursor-pointer rounded-full border-4 border-white bg-coral disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="촬영하기"
+            />
+          </div>
           <p className="mt-3 text-sm text-[#9A938A]">
             {Math.min(shots.length + 1, layout.shots)} / {layout.shots}컷 촬영 중
           </p>
+          {isGestureReady && (
+            <p className="mt-1 text-xs text-[#7A736A]">✌️ 브이 사인을 잠깐 유지해도 촬영돼요</p>
+          )}
         </div>
 
         {/* 넓은 화면: 촬영본 슬롯을 오른쪽 사이드 여백에 배치 (카드 크기는 모바일 버전과 동일하게 유지) */}
